@@ -1,0 +1,6 @@
+{
+  "name": "Aura Launcher",
+  "description": "Smart app launcher with custom APK importing, branded APK generation, and animated launch splash screens.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
