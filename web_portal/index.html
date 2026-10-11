@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Launcher - Web Installation & APK Download</title>
+  <style>
+    :root {
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.4);
+      --secondary: #a855f7;
+      --bg: #0b0f19;
+      --card: #131b2e;
+      --border: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 32px 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .glow {
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .logo-container {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 18px;
+      border-radius: 24px;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 25px var(--primary-glow);
+      overflow: hidden;
+      background: #0f172a;
+    }
+    .logo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .badge-row {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+    }
+    .badge.landscape {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.4);
+      color: var(--secondary);
+    }
+    .badge.signed {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: var(--success);
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    p.desc {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      background: var(--primary);
+      color: #001e2b;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 8px 24px var(--primary-glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.6);
+    }
+    .meta-info {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .feature-list {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      text-align: left;
+    }
+    .feature-item {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+    }
+    .feature-item strong {
+      display: block;
+      color: #ffffff;
+      font-size: 12px;
+    }
+    .feature-item span {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .steps-box {
+      margin-top: 20px;
+      padding: 16px;
+      background: #0f172a;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    .steps-box h3 {
+      font-size: 13px;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .steps-box ol {
+      padding-left: 20px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+    .steps-box li {
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="glow"></div>
+    <div class="logo-container">
+      <img src="logo.png" alt="Aura Launcher Logo">
+    </div>
+    <div class="badge-row">
+      <div class="badge signed">✓ V1 & V2 SIGNED</div>
+      <div class="badge landscape">LANDSCAPE SPLASH</div>
+    </div>
+    <h1>Aura Launcher</h1>
+    <p class="desc">App launcher & APK generator with custom logo branding, app renaming, cryptographic V1/V2 APK signing, and landscape startup splash screens.</p>
+
+    <a href="AuraLauncher.apk" download="AuraLauncher.apk" class="btn-download">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+      </svg>
+      Download Signed APK (35 MB)
+    </a>
+
+    <div class="meta-info">Verified Android V2 Signature Scheme • Installs on Android 7.0+</div>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <strong>🔒 Cryptographic Signer</strong>
+        <span>Full V1/V2 signature support</span>
+      </div>
+      <div class="feature-item">
+        <strong>🖥️ Landscape Splash</strong>
+        <span>Side-by-side animated intro</span>
+      </div>
+      <div class="feature-item">
+        <strong>🎨 Custom Logo Engine</strong>
+        <span>Presets & custom image upload</span>
+      </div>
+      <div class="feature-item">
+        <strong>✏️ App Renaming</strong>
+        <span>Custom display title on start</span>
+      </div>
+    </div>
+
+    <div class="steps-box">
+      <h3>Installation Guide:</h3>
+      <ol>
+        <li>Click <strong>Download Signed APK</strong> above.</li>
+        <li>Open the downloaded <code>AuraLauncher.apk</code> from notifications or Downloads.</li>
+        <li>Tap <strong>Install</strong> to install the launcher and APK studio.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

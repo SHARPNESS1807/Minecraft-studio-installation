@@ -25,20 +25,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -55,7 +54,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -79,9 +77,11 @@ fun ApkStudioScreen(
     isGenerating: Boolean,
     onPickApkFromStorage: (Uri) -> Unit,
     onSelectSampleApk: (AppItem) -> Unit,
+    onAppTitleChange: (String) -> Unit,
     onDurationChange: (Int) -> Unit,
     onTaglineChange: (String) -> Unit,
     onLogoPresetChange: (LogoPreset) -> Unit,
+    onPickCustomLogo: (Uri) -> Unit,
     onSplashStyleChange: (SplashStyle) -> Unit,
     onPreviewSplash: () -> Unit,
     onGenerateApk: () -> Unit,
@@ -94,6 +94,13 @@ fun ApkStudioScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { onPickApkFromStorage(it) }
+    }
+
+    // Image Picker for Custom Logo
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { onPickCustomLogo(it) }
     }
 
     Column(
@@ -122,7 +129,7 @@ fun ApkStudioScreen(
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF0F172A).copy(alpha = 0.92f),
+                                Color(0xFF0F172A).copy(alpha = 0.94f),
                                 Color(0xFF0F172A).copy(alpha = 0.65f)
                             )
                         )
@@ -149,16 +156,29 @@ fun ApkStudioScreen(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 1.2.sp
                     )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = AuraSecondary.copy(alpha = 0.25f)
+                    ) {
+                        Text(
+                            text = "LANDSCAPE SPLASH",
+                            color = AuraSecondary,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Package Any APK with Aura Logo",
+                    text = "Custom Logo & Landscape Startup",
                     color = Color.White,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Import APK, customize splash intro, and export signed APK.",
+                    text = "Rename app, customize logo, and export signed V1/V2 APK.",
                     color = Color(0xFF94A3B8),
                     fontSize = 12.sp
                 )
@@ -178,7 +198,6 @@ fun ApkStudioScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    // Launch file picker for APK
                     filePickerLauncher.launch("application/vnd.android.package-archive")
                 }
                 .testTag("add_apk_from_storage_btn")
@@ -350,7 +369,6 @@ fun ApkStudioScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Inspection Tags
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -371,11 +389,7 @@ fun ApkStudioScreen(
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Ready to Brand",
-                                    color = Color(0xFFCBD5E1),
-                                    fontSize = 11.sp
-                                )
+                                Text("V1 & V2 Signing", color = Color(0xFFCBD5E1), fontSize = 11.sp)
                             }
                         }
 
@@ -389,17 +403,13 @@ fun ApkStudioScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Code,
+                                    imageVector = Icons.Default.ScreenRotation,
                                     contentDescription = null,
                                     tint = AuraPrimary,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Signed Base",
-                                    color = Color(0xFFCBD5E1),
-                                    fontSize = 11.sp
-                                )
+                                Text("Landscape View", color = Color(0xFFCBD5E1), fontSize = 11.sp)
                             }
                         }
                     }
@@ -410,7 +420,7 @@ fun ApkStudioScreen(
 
             // Branding Configuration Panel
             Text(
-                text = "LAUNCHER LOGO & SPLASH CUSTOMIZER",
+                text = "CUSTOMIZE SPLASH APP, LOGO & RENAME",
                 color = Color(0xFF64748B),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -426,14 +436,87 @@ fun ApkStudioScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Logo Preset Selector
-                    Text(
-                        text = "Launcher Logo Preset:",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
+                    // FEATURE 1: RENAME THE APP
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            tint = AuraPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Rename Splash App (Display Name):",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    OutlinedTextField(
+                        value = brandingConfig.appTitle,
+                        onValueChange = onAppTitleChange,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("rename_app_input"),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFF0F172A),
+                            unfocusedContainerColor = Color(0xFF0F172A),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedIndicatorColor = AuraPrimary,
+                            unfocusedIndicatorColor = Color(0xFF334155)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        placeholder = { Text("Enter custom app title...", color = Color(0xFF64748B)) }
                     )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // FEATURE 2: CUSTOMIZE LOGO
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Splash Logo Customization:",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        // Button to upload custom logo from device
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = AuraSecondary.copy(alpha = 0.2f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AuraSecondary.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .clickable { imagePickerLauncher.launch("image/*") }
+                                .testTag("upload_custom_logo_btn")
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = null,
+                                    tint = AuraSecondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Upload Image", color = AuraSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
+
+                    // Logo Presets List
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -441,7 +524,7 @@ fun ApkStudioScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         LogoPreset.entries.forEach { preset ->
-                            val isSelected = brandingConfig.logoPreset == preset
+                            val isSelected = brandingConfig.customLogoBitmap == null && brandingConfig.logoPreset == preset
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = if (isSelected) AuraPrimary.copy(alpha = 0.2f) else Color(0xFF0F172A),
@@ -454,12 +537,15 @@ fun ApkStudioScreen(
                                     .testTag("logo_preset_${preset.name}")
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = preset.badge,
-                                        fontSize = 12.sp
+                                    Image(
+                                        painter = painterResource(id = preset.drawableRes),
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(RoundedCornerShape(6.dp))
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
@@ -473,49 +559,38 @@ fun ApkStudioScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Splash Style Selector
-                    Text(
-                        text = "Splash Animation Style:",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SplashStyle.entries.forEach { style ->
-                            val isSelected = brandingConfig.splashStyle == style
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) AuraSecondary.copy(alpha = 0.2f) else Color(0xFF0F172A),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    if (isSelected) AuraSecondary else Color(0xFF334155)
-                                ),
-                                modifier = Modifier
-                                    .clickable { onSplashStyleChange(style) }
-                                    .testTag("splash_style_${style.name}")
+                    // Show active custom logo preview if uploaded
+                    if (brandingConfig.customLogoBitmap != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = AuraSecondary.copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AuraSecondary.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = style.title,
-                                    color = if (isSelected) Color.White else Color(0xFF94A3B8),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                Image(
+                                    bitmap = brandingConfig.customLogoBitmap.asImageBitmap(),
+                                    contentDescription = "Active Custom Logo",
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(8.dp))
                                 )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text("Active Custom Logo Applied", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("Will be shown on the landscape splash screen", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                                }
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Duration Slider
+                    // Splash Duration Slider
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -530,7 +605,7 @@ fun ApkStudioScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Logo Splash Duration:",
+                                text = "Landscape Splash Duration:",
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -594,7 +669,7 @@ fun ApkStudioScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Live Preview Button
+                // Live Preview Button (Landscape)
                 OutlinedButton(
                     onClick = onPreviewSplash,
                     shape = RoundedCornerShape(14.dp),
@@ -614,8 +689,8 @@ fun ApkStudioScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Preview Splash",
-                        fontSize = 13.sp,
+                        text = "Preview Landscape",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -641,8 +716,8 @@ fun ApkStudioScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (isGenerating) "Generating..." else "Generate APK",
-                        fontSize = 13.sp,
+                        text = if (isGenerating) "Signing & Building..." else "Generate Signed APK",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }

@@ -2,16 +2,11 @@ package com.example
 
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -23,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -44,9 +40,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.model.GeneratedApkItem
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.components.GenerationDialog
 import com.example.ui.components.LauncherTopBar
+import com.example.ui.screens.ApkSignerScreen
 import com.example.ui.screens.ApkStudioScreen
 import com.example.ui.screens.AppsDrawerScreen
 import com.example.ui.screens.SettingsScreen
@@ -86,10 +83,11 @@ fun LauncherApp(viewModel: LauncherViewModel) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
     val statusMessage by viewModel.statusMessage.collectAsState()
+    val isSigning by viewModel.isSigning.collectAsState()
+    val signingResult by viewModel.signingResult.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // APK File Picker for top bar button
     val filePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -158,15 +156,41 @@ fun LauncherApp(viewModel: LauncherViewModel) {
                     icon = {
                         Icon(
                             imageVector = Icons.Default.RocketLaunch,
-                            contentDescription = "APK Studio",
+                            contentDescription = "Studio",
                             modifier = Modifier.testTag("nav_item_studio")
                         )
                     },
                     label = {
                         Text(
-                            text = "APK Studio",
+                            text = "Studio",
                             fontSize = 11.sp,
                             fontWeight = if (selectedTab == LauncherTab.APK_STUDIO) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF001E2B),
+                        selectedTextColor = AuraPrimary,
+                        indicatorColor = AuraPrimary,
+                        unselectedIconColor = Color(0xFF64748B),
+                        unselectedTextColor = Color(0xFF64748B)
+                    )
+                )
+
+                NavigationBarItem(
+                    selected = selectedTab == LauncherTab.SIGNER,
+                    onClick = { viewModel.setSelectedTab(LauncherTab.SIGNER) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = "Sign APK",
+                            modifier = Modifier.testTag("nav_item_signer")
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = "Sign APK",
+                            fontSize = 11.sp,
+                            fontWeight = if (selectedTab == LauncherTab.SIGNER) FontWeight.Bold else FontWeight.Normal
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(
@@ -266,6 +290,9 @@ fun LauncherApp(viewModel: LauncherViewModel) {
                         onSelectSampleApk = { sample ->
                             viewModel.selectApkForBranding(sample)
                         },
+                        onAppTitleChange = { newTitle ->
+                            viewModel.updateAppTitle(newTitle)
+                        },
                         onDurationChange = { dur ->
                             viewModel.updateDuration(dur)
                         },
@@ -275,6 +302,9 @@ fun LauncherApp(viewModel: LauncherViewModel) {
                         onLogoPresetChange = { preset ->
                             viewModel.updateLogoPreset(preset)
                         },
+                        onPickCustomLogo = { uri ->
+                            viewModel.setCustomLogoFromUri(uri)
+                        },
                         onSplashStyleChange = { style ->
                             viewModel.updateSplashStyle(style)
                         },
@@ -283,6 +313,29 @@ fun LauncherApp(viewModel: LauncherViewModel) {
                         },
                         onGenerateApk = {
                             viewModel.generateBrandedApk()
+                        }
+                    )
+                }
+
+                LauncherTab.SIGNER -> {
+                    ApkSignerScreen(
+                        importedApks = importedApks,
+                        isSigning = isSigning,
+                        signingResult = signingResult,
+                        onPickApkToSign = { uri ->
+                            viewModel.importApkFromUri(uri)
+                        },
+                        onSignApk = { file ->
+                            viewModel.signAnyApk(file)
+                        },
+                        onInstallSignedApk = { file ->
+                            viewModel.installApk(context, file)
+                        },
+                        onShareSignedApk = { file ->
+                            viewModel.shareApk(context, file)
+                        },
+                        onClearResult = {
+                            viewModel.clearSigningResult()
                         }
                     )
                 }

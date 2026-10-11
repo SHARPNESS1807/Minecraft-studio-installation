@@ -159,7 +159,7 @@ fun GenerationDialog(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "App: ${step.generatedItem.appName}\nSize: ${step.generatedItem.fileSizeFormatted}",
+                            text = "App: ${step.generatedItem.appName}\nSize: ${step.generatedItem.fileSizeFormatted}\n${step.signingInfo}",
                             color = Color(0xFFCBD5E1),
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center

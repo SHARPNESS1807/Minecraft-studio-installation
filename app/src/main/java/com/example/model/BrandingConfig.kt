@@ -1,10 +1,15 @@
 package com.example.model
 
-enum class LogoPreset(val title: String, val badge: String, val description: String) {
-    AURA_ROCKET("Aura Rocket Prism", "⚡ OFFICIAL", "Dynamic electric rocket with crystalline aura glow"),
-    CYBER_SHIELD("Cyber Shield", "🛡️ DEFENSE", "Neon fortified perimeter crest emblem"),
-    QUANTUM_PRISM("Quantum Prism", "💎 APEX", "Hexagonal refractive crystal geometry"),
-    MINIMAL_NOVA("Minimal Nova", "✨ CLEAN", "Sleek starlight monogram vector")
+import android.graphics.Bitmap
+import com.example.R
+
+enum class LogoPreset(val title: String, val badge: String, val description: String, val drawableRes: Int) {
+    AURA_ROCKET("Aura Rocket Prism", "⚡ OFFICIAL", "Dynamic electric rocket with crystalline aura glow", R.drawable.aura_launcher_logo),
+    NEON_PHOENIX("Cyber Phoenix", "🔥 MYTHIC", "Futuristic neon electric gold & cyan wings crest", R.drawable.phoenix_logo),
+    GALAXY_VORTEX("Galaxy Vortex", "🌀 COSMIC", "Swirling electric violet and cyan quantum shield", R.drawable.vortex_logo),
+    CYBER_SHIELD("Cyber Shield", "🛡️ DEFENSE", "Neon fortified perimeter crest emblem", R.drawable.aura_launcher_logo),
+    QUANTUM_PRISM("Quantum Prism", "💎 APEX", "Hexagonal refractive crystal geometry", R.drawable.aura_launcher_logo),
+    MINIMAL_NOVA("Minimal Nova", "✨ CLEAN", "Sleek starlight monogram vector", R.drawable.aura_launcher_logo)
 }
 
 enum class SplashStyle(val title: String, val animType: String) {
@@ -19,6 +24,8 @@ data class BrandingConfig(
     val appTitle: String = "My App",
     val tagline: String = "Powered by Aura Launcher",
     val logoPreset: LogoPreset = LogoPreset.AURA_ROCKET,
+    val customLogoUri: String? = null,
+    val customLogoBitmap: Bitmap? = null,
     val splashStyle: SplashStyle = SplashStyle.PULSE_GLOW,
     val durationMs: Int = 2200,
     val themeBackgroundHex: String = "#0F172A",
@@ -37,5 +44,6 @@ data class GeneratedApkItem(
     val fileSizeFormatted: String,
     val logoPreset: String,
     val durationMs: Int,
-    val tagline: String
+    val tagline: String,
+    val isSigned: Boolean = true
 )

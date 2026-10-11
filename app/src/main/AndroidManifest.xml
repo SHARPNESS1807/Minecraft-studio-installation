@@ -33,7 +33,7 @@
             android:name=".BrandedSplashActivity"
             android:exported="true"
             android:theme="@style/Theme.MyApplication"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="sensorLandscape" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

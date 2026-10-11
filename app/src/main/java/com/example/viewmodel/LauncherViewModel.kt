@@ -3,7 +3,8 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -12,7 +13,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.BrandedSplashActivity
 import com.example.engine.ApkParser
+import com.example.engine.ApkSignerUtil
 import com.example.engine.BrandedApkBuilder
+import com.example.engine.SigningResult
 import com.example.model.AppItem
 import com.example.model.BrandingConfig
 import com.example.model.GeneratedApkItem
@@ -30,7 +33,8 @@ import java.io.FileOutputStream
 enum class LauncherTab(val label: String) {
     APPS("Apps"),
     APK_STUDIO("APK Studio"),
-    VAULT("Branded Vault"),
+    SIGNER("Sign APK"),
+    VAULT("Vault"),
     SETTINGS("Settings")
 }
 
@@ -56,6 +60,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _generationStep = MutableStateFlow<BrandedApkBuilder.BuildStep?>(null)
     val generationStep: StateFlow<BrandedApkBuilder.BuildStep?> = _generationStep.asStateFlow()
+
+    private val _signingResult = MutableStateFlow<SigningResult?>(null)
+    val signingResult: StateFlow<SigningResult?> = _signingResult.asStateFlow()
+
+    private val _isSigning = MutableStateFlow(false)
+    val isSigning: StateFlow<Boolean> = _isSigning.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -84,6 +94,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _statusMessage.value = null
     }
 
+    fun clearSigningResult() {
+        _signingResult.value = null
+    }
+
     fun loadInstalledApps() {
         viewModelScope.launch(Dispatchers.IO) {
             val context = getApplication<Application>()
@@ -95,7 +109,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val apps = resolveInfos.mapNotNull { resolveInfo ->
                 try {
                     val pkgName = resolveInfo.activityInfo.packageName
-                    if (pkgName == context.packageName) return@mapNotNull null // Don't show launcher in itself
+                    if (pkgName == context.packageName) return@mapNotNull null
 
                     val label = resolveInfo.loadLabel(pm).toString()
                     val iconDrawable = resolveInfo.loadIcon(pm)
@@ -171,7 +185,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
             _importedApks.value = parsedSamples
 
-            // Select first sample by default so APK Studio is instantly interactive
             if (_selectedApk.value == null && parsedSamples.isNotEmpty()) {
                 selectApkForBranding(parsedSamples.first())
             }
@@ -187,13 +200,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 if (parsed != null) {
                     _importedApks.value = listOf(parsed) + _importedApks.value
                     selectApkForBranding(parsed)
-                    _statusMessage.value = "Successfully imported APK: ${parsed.name}"
+                    _statusMessage.value = "Imported APK: ${parsed.name}"
                     _selectedTab.value = LauncherTab.APK_STUDIO
                 } else {
-                    _statusMessage.value = "Failed to parse APK manifest from file."
+                    _statusMessage.value = "Failed to parse APK manifest."
                 }
             } else {
-                _statusMessage.value = "Could not read APK file from storage."
+                _statusMessage.value = "Could not read APK file."
             }
         }
     }
@@ -207,6 +220,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
+    fun updateAppTitle(renamedTitle: String) {
+        _brandingConfig.value = _brandingConfig.value.copy(appTitle = renamedTitle)
+    }
+
     fun updateDuration(durationMs: Int) {
         _brandingConfig.value = _brandingConfig.value.copy(durationMs = durationMs)
     }
@@ -216,7 +233,35 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateLogoPreset(preset: LogoPreset) {
-        _brandingConfig.value = _brandingConfig.value.copy(logoPreset = preset)
+        _brandingConfig.value = _brandingConfig.value.copy(
+            logoPreset = preset,
+            customLogoUri = null,
+            customLogoBitmap = null
+        )
+    }
+
+    fun setCustomLogoFromUri(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val context = getApplication<Application>()
+            try {
+                val logoFile = File(context.filesDir, "custom_logo_${System.currentTimeMillis()}.png")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(logoFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val bitmap = BitmapFactory.decodeFile(logoFile.absolutePath)
+                if (bitmap != null) {
+                    _brandingConfig.value = _brandingConfig.value.copy(
+                        customLogoUri = logoFile.absolutePath,
+                        customLogoBitmap = bitmap
+                    )
+                    _statusMessage.value = "Custom splash logo loaded!"
+                }
+            } catch (e: Exception) {
+                _statusMessage.value = "Could not load custom logo: ${e.message}"
+            }
+        }
     }
 
     fun updateSplashStyle(style: SplashStyle) {
@@ -231,8 +276,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             _isGenerating.value = true
             val context = getApplication<Application>()
             val config = _brandingConfig.value.copy(
-                targetPackage = currentSelected.packageName,
-                appTitle = currentSelected.name
+                targetPackage = currentSelected.packageName
             )
 
             val result = BrandedApkBuilder.generateBrandedApk(
@@ -246,7 +290,33 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             _isGenerating.value = false
             if (result != null) {
                 _generatedApks.value = listOf(result) + _generatedApks.value
-                _statusMessage.value = "Generated Branded APK: ${result.fileName}"
+                _statusMessage.value = "Generated and signed: ${result.fileName}"
+            }
+        }
+    }
+
+    // Direct standalone APK Signing tool for ANY APK
+    fun signAnyApk(inputApk: File) {
+        viewModelScope.launch {
+            _isSigning.value = true
+            val context = getApplication<Application>()
+            val outDir = File(context.filesDir, "signed_apks").apply { if (!exists()) mkdirs() }
+            val signedFile = File(outDir, "${inputApk.nameWithoutExtension}_signed.apk")
+
+            val result = ApkSignerUtil.signApk(
+                context = context,
+                inputApk = inputApk,
+                outputApk = signedFile
+            )
+
+            _isSigning.value = false
+            _signingResult.value = result
+
+            if (result.isSuccess) {
+                _statusMessage.value = "APK Signed with V1 & V2 schemes!"
+                loadGeneratedVault()
+            } else {
+                _statusMessage.value = result.message
             }
         }
     }
@@ -260,9 +330,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         BrandedSplashActivity.start(
             context = context,
             targetPackage = app.packageName,
-            appTitle = app.name,
+            appTitle = if (app.packageName == config.targetPackage) config.appTitle else app.name,
             tagline = config.tagline,
             durationMs = config.durationMs,
+            logoPreset = config.logoPreset,
+            customLogoPath = config.customLogoUri,
             isPreview = false
         )
     }
@@ -273,9 +345,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         BrandedSplashActivity.start(
             context = context,
             targetPackage = app?.packageName ?: "",
-            appTitle = app?.name ?: "Preview App",
+            appTitle = config.appTitle.ifEmpty { app?.name ?: "Preview App" },
             tagline = config.tagline,
             durationMs = config.durationMs,
+            logoPreset = config.logoPreset,
+            customLogoPath = config.customLogoUri,
             isPreview = true
         )
     }
@@ -283,7 +357,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun installApk(context: Context, apkFile: File) {
         try {
             if (!apkFile.exists()) {
-                Toast.makeText(context, "APK file not found on disk.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "APK file not found.", Toast.LENGTH_SHORT).show()
                 return
             }
             val authority = "${context.packageName}.fileprovider"
@@ -297,7 +371,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             context.startActivity(installIntent)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error opening package installer: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Error launching installer: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -311,7 +385,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 putExtra(Intent.EXTRA_STREAM, contentUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(shareIntent, "Share Branded APK"))
+            context.startActivity(Intent.createChooser(shareIntent, "Share Signed APK"))
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to share APK: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -320,28 +394,35 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun loadGeneratedVault() {
         viewModelScope.launch(Dispatchers.IO) {
             val context = getApplication<Application>()
-            val outputDir = File(context.filesDir, "generated_apks")
-            if (outputDir.exists()) {
-                val files = outputDir.listFiles { f -> f.extension == "apk" } ?: emptyArray()
-                val list = files.map { file ->
-                    val sizeMb = file.length() / (1024.0 * 1024.0)
-                    val rawName = file.nameWithoutExtension.replace("_aura_branded", "").replace("_", " ")
-                    val displayAppName = rawName.replaceFirstChar { char -> char.uppercase() }
-                    GeneratedApkItem(
-                        id = file.name,
-                        appName = displayAppName,
-                        targetPackage = "com.aura.branded",
-                        filePath = file.absolutePath,
-                        fileName = file.name,
-                        timestamp = file.lastModified(),
-                        fileSizeFormatted = String.format("%.2f MB", sizeMb),
-                        logoPreset = LogoPreset.AURA_ROCKET.title,
-                        durationMs = 2200,
-                        tagline = "Powered by Aura Launcher"
-                    )
-                }.sortedByDescending { it.timestamp }
-                _generatedApks.value = list
+            val outputDirs = listOf(
+                File(context.filesDir, "generated_apks"),
+                File(context.filesDir, "signed_apks")
+            )
+
+            val allFiles = outputDirs.flatMap { dir ->
+                if (dir.exists()) dir.listFiles { f -> f.extension == "apk" }?.toList() ?: emptyList()
+                else emptyList()
             }
+
+            val list = allFiles.map { file ->
+                val sizeMb = file.length() / (1024.0 * 1024.0)
+                val rawName = file.nameWithoutExtension.replace("_aura_branded", "").replace("_signed", "").replace("_", " ")
+                val displayAppName = rawName.replaceFirstChar { char -> char.uppercase() }
+                GeneratedApkItem(
+                    id = file.name,
+                    appName = displayAppName,
+                    targetPackage = "com.aura.branded",
+                    filePath = file.absolutePath,
+                    fileName = file.name,
+                    timestamp = file.lastModified(),
+                    fileSizeFormatted = String.format("%.2f MB", sizeMb),
+                    logoPreset = LogoPreset.AURA_ROCKET.title,
+                    durationMs = 2200,
+                    tagline = "Powered by Aura Launcher",
+                    isSigned = true
+                )
+            }.sortedByDescending { it.timestamp }
+            _generatedApks.value = list
         }
     }
 }

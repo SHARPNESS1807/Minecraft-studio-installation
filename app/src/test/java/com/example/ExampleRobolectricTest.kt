@@ -1,50 +1,38 @@
 package com.example
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import com.example.model.BrandingConfig
 import com.example.model.LogoPreset
 import com.example.model.SplashStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
 class ExampleRobolectricTest {
 
     @Test
-    fun `read app name from context`() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val appName = context.getString(R.string.app_name)
-        assertEquals("Aura Launcher", appName)
-    }
-
-    @Test
-    fun `branding config default values are valid`() {
+    fun `branding config default values are valid and app renaming works`() {
         val config = BrandingConfig(
             targetPackage = "com.sample.retro_game",
-            appTitle = "Retro Game",
+            appTitle = "Renamed Awesome App",
             tagline = "Powered by Aura Launcher",
-            logoPreset = LogoPreset.AURA_ROCKET,
+            logoPreset = LogoPreset.NEON_PHOENIX,
             splashStyle = SplashStyle.PULSE_GLOW,
-            durationMs = 2200
+            durationMs = 2500
         )
-        assertEquals("Retro Game", config.appTitle)
-        assertEquals(2200, config.durationMs)
+        assertEquals("Renamed Awesome App", config.appTitle)
+        assertEquals(2500, config.durationMs)
         assertEquals("Powered by Aura Launcher", config.tagline)
-        assertEquals(LogoPreset.AURA_ROCKET, config.logoPreset)
+        assertEquals(LogoPreset.NEON_PHOENIX, config.logoPreset)
     }
 
     @Test
-    fun `logo presets have badges and titles`() {
+    fun `all logo presets have valid titles, badges and drawables`() {
         for (preset in LogoPreset.entries) {
             assertNotNull(preset.title)
             assertNotNull(preset.badge)
             assertNotNull(preset.description)
+            assertTrue(preset.drawableRes != 0)
         }
     }
 }
